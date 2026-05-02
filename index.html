@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたへのメッセージ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Gothic&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --env-bg: #fffbf0;    
+            --env-accent: #f7f0e3; 
+            --paper-white: #ffffff;
+            --bg-soft-pink: #fff5f7;
+            --base-w: 240px;
+            --base-h: 170px;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-soft-pink);
+            font-family: 'Sawarabi Gothic', sans-serif;
+            overflow: hidden;
+            cursor: pointer;
+            perspective: 2000px;
+        }
+
+        #instruction {
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; color: #b19494;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        body.open #instruction { opacity: 0; pointer-events: none; }
+
+        .wrapper {
+            position: relative; width: 260px; height: 180px;
+            transform-style: preserve-3d;
+        }
+
+        /* 封筒全体：回転開始時に消すことでめり込みを完全に防ぐ */
+        .envelope {
+            position: relative; width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            animation: floating 3s ease-in-out infinite; 
+            z-index: 10;
+        }
+        body.open .envelope { 
+            animation: fadeOutEnvelope 2s forwards;
+            animation-delay: 0.8s;
+        }
+
+        @keyframes fadeOutEnvelope {
+            0%, 40% { opacity: 1; }
+            50%, 100% { opacity: 0; visibility: hidden; }
+        }
+
+        .flap {
+            position: absolute; top: 0; left: 0; width: 0; height: 0;
+            border-left: 130px solid transparent; border-right: 130px solid transparent;
+            border-top: 100px solid var(--env-bg);
+            transform-origin: top; z-index: 40;
+            transition: transform 0.6s ease-in-out;
+        }
+        body.open .flap { transform: rotateX(180deg); z-index: 1; }
+
+        .pocket-back {
+            position: absolute; top: 0; left: 0; width: 260px; height: 180px;
+            background-color: var(--env-accent); border-radius: 0 0 15px 15px;
+            z-index: 5;
+        }
+
+        .pocket-front {
+            position: absolute; bottom: 0; left: 0; width: 260px; height: 180px;
+            background-color: var(--env-bg);
+            clip-path: polygon(0 0, 15% 0, 50% 50%, 85% 0, 100% 0, 100% 100%, 0 100%);
+            border-radius: 0 0 15px 15px; z-index: 20;
+        }
+
+        /* --- 舞い上がる手紙の土台 --- */
+        .letter-container {
+            position: absolute; bottom: 5px; left: 10px;
+            width: var(--base-w); height: var(--base-h);
+            transform-style: preserve-3d;
+            z-index: 10;
+            opacity: 0;
+        }
+
+        .letter-body {
+            position: absolute; inset: 0;
+            background-color: var(--paper-white);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            backface-visibility: hidden;
+        }
+
+        body.open .letter-container {
+            opacity: 1;
+            animation: windDance 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+            animation-delay: 0.7s;
+        }
+
+        /* ひらひら舞いながら消える（画像へバトンタッチ） */
+        @keyframes windDance {
+            0% { transform: translateY(0) rotateY(0deg) translateZ(0px); }
+            /* 封筒の口を出る */
+            25% { transform: translateY(-180px) rotateY(0deg) translateZ(0px); }
+            /* 封筒の手前に移動しつつ、ひらひら舞う */
+            30% { translateZ(200px); }
+            60% { 
+                transform: translateY(-280px) translateX(-20%) translateZ(300px) 
+                           rotate(-15deg) rotateY(90deg); 
+                opacity: 1;
+            }
+            /* 画像が出る瞬間に消える */
+            80% { opacity: 0; }
+            100% { transform: translateY(-200px) rotateY(180deg) scale(0); opacity: 0; }
+        }
+
+        /* --- 最終画像：スマホ全画面基準 --- */
+        .image-overlay {
+            position: fixed; 
+            top: 50%; left: 50%;
+            width: 92vw; /* スマホで左右に少し余白 */
+            max-width: 500px;
+            height: auto;
+            transform: translate(-50%, -40%) scale(0); /* 少し下から出る */
+            opacity: 0;
+            z-index: 2000;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .image-overlay img {
+            width: 100%; height: auto;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            display: block;
+        }
+
+        .image-overlay.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        @keyframes floating { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    </style>
+</head>
+<body onclick="openEnvelope()">
+
+    <div id="instruction">
+        <h1 style="font-weight: normal; font-size: 1.2rem; margin: 0;">あなたへのメッセージがあります</h1>
+        <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.8;">画面をタップしてね</p>
+    </div>
+
+    <div class="wrapper">
+        <div class="envelope">
+            <div class="flap"></div>
+            <div class="pocket-back"></div>
+            <div class="letter-container">
+                <div class="letter-body"></div>
+            </div>
+            <div class="pocket-front"></div>
+        </div>
+    </div>
+
+    <div class="image-overlay" id="finalImage">
+        <img src="yuzuki.jpg" alt="Message">
+    </div>
+
+    <script>
+        function openEnvelope() {
+            if (!document.body.classList.contains('open')) {
+                document.body.classList.add('open');
+                
+                // 手紙が空中で舞い、反転し始めるタイミングで画像を起動
+                setTimeout(() => {
+                    document.getElementById('finalImage').classList.add('active');
+                }, 2200); 
+            }
+        }
+    </script>
+</body>
+</html>
